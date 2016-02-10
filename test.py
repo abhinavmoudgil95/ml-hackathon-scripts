@@ -42,19 +42,10 @@ def classify(model, featureVectors, tl):
 	z = []
 	misclassified = 0
 	for feature in featureVectors:
-		# if feature[-1] == predict(model, feature[:-1]):
-		# 	true += 1
-		# if feature[-1] != predict(model, feature[:-1]) and feature[-1] == 4:
-		# 	misclassified += 1
 		z = z + predict(model, feature).astype(np.int).tolist()
-		# total += 1
-	# data = featureVectors[:,-1].flatten()
-	# data = data.astype(np.int).tolist()
-	# print misclassified
 	testlabels = tl.tolist()
-	print cr(testlabels, z)
-	# print "Accuracy:",
-	# print (true * 100) / total
+	# print cr(testlabels, z)
+	return z
 
 class EnsembleClassifier(BaseEstimator, ClassifierMixin, TransformerMixin):
 	def __init__(self, clfs, voting='hard', weights=None):
@@ -132,7 +123,7 @@ class EnsembleClassifier(BaseEstimator, ClassifierMixin, TransformerMixin):
 		return np.asarray([clf.predict_proba(X) for clf in self.clfs_])
 
 
-file = open("./newdataset/training_set.csv")
+file = open("../newdataset/training_set.csv")
 featureVectors = []
 testVectors = []
 testlabels = []
@@ -143,28 +134,19 @@ for line in file:
 	vector = line.strip().lower().split(',')
 	featureVectors.append(vector)
 
-file = open("./newdataset/testing_set.csv")
+file = open("../newdataset/testing_set.csv")
 for line in file:	
 	vector = line.strip().lower().split(',')
 	testVectors.append(vector)
 
-# file = open("./newdataset/testing_labels.csv")
-# for line in file:   
-#     vector = line.strip().lower().split(',')
-#     testlabels.append(vector)
-
-file = open("./newdataset/testing_labels.csv")
+file = open("../newdataset/testing_labels.csv")
 for line in file:   
 	vector = line.strip().lower()
 	testlabels.append(vector)
 
-# random.seed(170)
-# random.shuffle(featureVectors)	
 train = np.array(featureVectors)
 test = np.array(testVectors)
-# test = np.array(testVectors[:])[:,:]
-# y = featureVectors[:, 51]
-# featureVectors = featureVectors[:, :51]
+
 testlabels = np.array(testlabels)
 y = train[:, -1]
 train = train[:, :-1]
@@ -188,9 +170,9 @@ mylabels = np.zeros(np.size(testlabels, 0) + np.size(y, 0))
 mylabels = mylabels.astype('str')
 mylabels[:np.size(testlabels)] = testlabels
 mylabels[np.size(testlabels):] = y
+
 mylabels = encode(mylabels)
-# X = mat[:N, :-1]
-# y = mat[:N, -1]
+
 y = mylabels[np.size(testlabels):]
 tl = mylabels[:np.size(testlabels)]
 # clf1 = DecisionTreeClassifier()
@@ -201,7 +183,14 @@ print "Training started"
 eclf = RandomForestClassifier()
 eclf.fit(X, y)
 print "Training done"
-classify(eclf, test, tl)
+z = classify(eclf, test, tl)
+
+target_names = ['type2', 'type1', 'type3', 'type4', 'type5']
+N = np.size(z, 0)
+f = open('./myprediction.txt', 'w')
+for i in xrange(N):
+	f.write(target_names[z[i]] + '\n')
+
 
 
 
