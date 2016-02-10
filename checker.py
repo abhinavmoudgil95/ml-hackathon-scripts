@@ -20,5 +20,5 @@ if len(submission) < len(original):
 elif len(submission) > len(original):
 	submission = submission[0:len(original)]
 x = cr(original, submission, digits = 4).split()
-i = x.index('DOS')
+i = x.index('U2R')
 print x[i + 2]
