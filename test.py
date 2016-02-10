@@ -27,7 +27,7 @@ def encode(vector):
 	return vector
 
 def encodeAll(mat):
-	categoricalIndices = [1,2,3,-1]
+	categoricalIndices = [1,2,3]
 	for i in categoricalIndices:
 		mat[:,i] = encode(mat[:,i])
 	return mat.astype(np.float)
@@ -35,132 +35,173 @@ def encodeAll(mat):
 def predict(model, vector):
 	return model.predict(vector)
 
-def classify(model, featureVectors):
+def classify(model, featureVectors, tl):
 	true = 0
 	total = 0
+	testlabels = []
 	z = []
 	misclassified = 0
 	for feature in featureVectors:
-		if feature[-1] == predict(model, feature[:-1]):
-			true += 1
-		if feature[-1] != predict(model, feature[:-1]) and feature[-1] == 4:
-			misclassified += 1
-		z = z + predict(model, feature[:-1]).astype(np.int).tolist()
-		total += 1
-	data = featureVectors[:,-1].flatten()
-	data = data.astype(np.int).tolist()
-	print misclassified
-	print cr(data, z )
-	print "Accuracy:",
-	print (true * 100) / total
+		# if feature[-1] == predict(model, feature[:-1]):
+		# 	true += 1
+		# if feature[-1] != predict(model, feature[:-1]) and feature[-1] == 4:
+		# 	misclassified += 1
+		z = z + predict(model, feature).astype(np.int).tolist()
+		# total += 1
+	# data = featureVectors[:,-1].flatten()
+	# data = data.astype(np.int).tolist()
+	# print misclassified
+	testlabels = tl.tolist()
+	print cr(testlabels, z)
+	# print "Accuracy:",
+	# print (true * 100) / total
 
 class EnsembleClassifier(BaseEstimator, ClassifierMixin, TransformerMixin):
-    def __init__(self, clfs, voting='hard', weights=None):
+	def __init__(self, clfs, voting='hard', weights=None):
 
-        self.clfs = clfs
-        self.named_clfs = {key:value for key,value in _name_estimators(clfs)}
-        self.voting = voting
-        self.weights = weights
+		self.clfs = clfs
+		self.named_clfs = {key:value for key,value in _name_estimators(clfs)}
+		self.voting = voting
+		self.weights = weights
 
-    def fit(self, X, y):
-        if isinstance(y, np.ndarray) and len(y.shape) > 1 and y.shape[1] > 1:
-            raise NotImplementedError('Multilabel and multi-output'\
-                                      ' classification is not supported.')
+	def fit(self, X, y):
+		if isinstance(y, np.ndarray) and len(y.shape) > 1 and y.shape[1] > 1:
+			raise NotImplementedError('Multilabel and multi-output'\
+									  ' classification is not supported.')
 
-        if self.voting not in ('soft', 'hard'):
-            raise ValueError("Voting must be 'soft' or 'hard'; got (voting=%r)"
-                             % voting)
+		if self.voting not in ('soft', 'hard'):
+			raise ValueError("Voting must be 'soft' or 'hard'; got (voting=%r)"
+							 % voting)
 
-        if self.weights and len(self.weights) != len(self.clfs):
-            raise ValueError('Number of classifiers and weights must be equal'
-                             '; got %d weights, %d clfs'
-                             % (len(self.weights), len(self.clfs)))
+		if self.weights and len(self.weights) != len(self.clfs):
+			raise ValueError('Number of classifiers and weights must be equal'
+							 '; got %d weights, %d clfs'
+							 % (len(self.weights), len(self.clfs)))
 
-        self.le_ = LabelEncoder()
-        self.le_.fit(y)
-        self.classes_ = self.le_.classes_
-        self.clfs_ = []
-        for clf in self.clfs:
-            fitted_clf = clone(clf).fit(X, self.le_.transform(y))
-            self.clfs_.append(fitted_clf)
-        return self
+		self.le_ = LabelEncoder()
+		self.le_.fit(y)
+		self.classes_ = self.le_.classes_
+		self.clfs_ = []
+		for clf in self.clfs:
+			fitted_clf = clone(clf).fit(X, self.le_.transform(y))
+			self.clfs_.append(fitted_clf)
+		return self
 
-    def predict(self, X):
-        if self.voting == 'soft':
+	def predict(self, X):
+		if self.voting == 'soft':
 
-            maj = np.argmax(self.predict_proba(X), axis=1)
+			maj = np.argmax(self.predict_proba(X), axis=1)
 
-        else:  # 'hard' voting
-            predictions = self._predict(X)
+		else:  # 'hard' voting
+			predictions = self._predict(X)
 
-            maj = np.apply_along_axis(
-                                      lambda x:
-                                      np.argmax(np.bincount(x,
-                                                weights=self.weights)),
-                                      axis=1,
-                                      arr=predictions)
+			maj = np.apply_along_axis(
+									  lambda x:
+									  np.argmax(np.bincount(x,
+												weights=self.weights)),
+									  axis=1,
+									  arr=predictions)
 
-        maj = self.le_.inverse_transform(maj)
-        return maj
+		maj = self.le_.inverse_transform(maj)
+		return maj
 
-    def predict_proba(self, X):
-        avg = np.average(self._predict_probas(X), axis=0, weights=self.weights)
-        return avg
+	def predict_proba(self, X):
+		avg = np.average(self._predict_probas(X), axis=0, weights=self.weights)
+		return avg
 
-    def transform(self, X):
-        if self.voting == 'soft':
-            return self._predict_probas(X)
-        else:
-            return self._predict(X)
+	def transform(self, X):
+		if self.voting == 'soft':
+			return self._predict_probas(X)
+		else:
+			return self._predict(X)
 
-    def get_params(self, deep=True):
-        if not deep:
-            return super(EnsembleClassifier, self).get_params(deep=False)
-        else:
-            out = self.named_clfs.copy()
-            for name, step in six.iteritems(self.named_clfs):
-                for key, value in six.iteritems(step.get_params(deep=True)):
-                    out['%s__%s' % (name, key)] = value
-            return out
+	def get_params(self, deep=True):
+		if not deep:
+			return super(EnsembleClassifier, self).get_params(deep=False)
+		else:
+			out = self.named_clfs.copy()
+			for name, step in six.iteritems(self.named_clfs):
+				for key, value in six.iteritems(step.get_params(deep=True)):
+					out['%s__%s' % (name, key)] = value
+			return out
 
-    def _predict(self, X):
-        return np.asarray([clf.predict(X) for clf in self.clfs_]).T
+	def _predict(self, X):
+		return np.asarray([clf.predict(X) for clf in self.clfs_]).T
 
-    def _predict_probas(self, X):
-        return np.asarray([clf.predict_proba(X) for clf in self.clfs_])
+	def _predict_probas(self, X):
+		return np.asarray([clf.predict_proba(X) for clf in self.clfs_])
 
 
-file = open("training_set.csv")
+file = open("./newdataset/training_set.csv")
 featureVectors = []
+testVectors = []
+testlabels = []
+
 N = 250000
 M = 250000
 for line in file:	
 	vector = line.strip().lower().split(',')
 	featureVectors.append(vector)
 
-file = open("testing_set.csv")
+file = open("./newdataset/testing_set.csv")
 for line in file:	
 	vector = line.strip().lower().split(',')
-	featureVectors.append(vector)
+	testVectors.append(vector)
 
+# file = open("./newdataset/testing_labels.csv")
+# for line in file:   
+#     vector = line.strip().lower().split(',')
+#     testlabels.append(vector)
+
+file = open("./newdataset/testing_labels.csv")
+for line in file:   
+	vector = line.strip().lower()
+	testlabels.append(vector)
 
 # random.seed(170)
 # random.shuffle(featureVectors)	
-mat = np.array(featureVectors[:])[:,:]
+train = np.array(featureVectors)
+test = np.array(testVectors)
+# test = np.array(testVectors[:])[:,:]
+# y = featureVectors[:, 51]
+# featureVectors = featureVectors[:, :51]
+testlabels = np.array(testlabels)
+y = train[:, -1]
+train = train[:, :-1]
+
+mat = np.zeros((np.size(train, 0) + np.size(test, 0), np.size(test, 1)))
+mat = mat.astype('str')
+mat[:np.size(train, 0), :] = train
+mat[np.size(train, 0):, :] = test
+# featureVectors.extend(testVectors)
 mat = encodeAll(mat)
-X = mat[:N, :-1]
-y = mat[:N, -1]
+X = mat[:N, :]
+# y = mat[:N, -1]
+
+# test = encodeAll(test)
 test = mat[N:N+M, :]
 print test.shape
+print X.shape
+print y.shape
 
-X = mat[:N, :-1]
-y = mat[:N, -1]
-clf1 = DecisionTreeClassifier()
-clf2 = RandomForestClassifier()
-clf3 = GaussianNB()
-eclf = EnsembleClassifier(clfs=[clf1, clf2, clf3], voting='hard')
+mylabels = np.zeros(np.size(testlabels, 0) + np.size(y, 0))
+mylabels = mylabels.astype('str')
+mylabels[:np.size(testlabels)] = testlabels
+mylabels[np.size(testlabels):] = y
+mylabels = encode(mylabels)
+# X = mat[:N, :-1]
+# y = mat[:N, -1]
+y = mylabels[np.size(testlabels):]
+tl = mylabels[:np.size(testlabels)]
+# clf1 = DecisionTreeClassifier()
+# clf2 = RandomForestClassifier()
+# clf3 = GaussianNB()
+# eclf = EnsembleClassifier(clfs=[clf1, clf2, clf3], voting='hard')
+print "Training started"
+eclf = RandomForestClassifier()
 eclf.fit(X, y)
-classify(eclf, test)
+print "Training done"
+classify(eclf, test, tl)
 
 
 

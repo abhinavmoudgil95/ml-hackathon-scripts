@@ -34,15 +34,33 @@ for line in file:
 		vector[-1] = 'Probing'
 	elif vector[-1] in ['back.', 'land.', 'neptune.', 'pod.', 'smurf.', 'teardrop.']:
 		vector[-1] = 'DOS'
-	featureVectors.append(vector)
+	featureVectors.append(vector)	
 
 random.seed(170)
 random.shuffle(featureVectors)
+
+featureVectors = np.array(featureVectors);
+
+labels = featureVectors[:, -1]
+featureVectors = featureVectors[:, :-1]
+
+num_probes = 100
+sz = ((np.size(featureVectors, 0), num_probes))
+probes = np.random.uniform(low=0.0, high=50, size=sz)
+probes = probes.astype('str')
+b = np.zeros((np.size(featureVectors,0), np.size(featureVectors, 1) + num_probes + 1))
+b = b.astype('str')
+b[:,:np.size(featureVectors,1)] = featureVectors
+b[:, np.size(featureVectors, 1):-1] = probes
+b[:, -1] = labels
+featureVectors = b.tolist()
+
 print "Feature Matrix Done"
 
+
 N = 250000
-f = open('training_set.csv', 'w')
-M = len(featureVectors[0])
+f = open('./newdataset/training_set.csv', 'w')
+M = np.size(featureVectors, 1)
 for i in xrange(N):
 	for j in xrange(M - 1):
 		f.write(featureVectors[i][j] + ',')
@@ -51,9 +69,9 @@ for i in xrange(N):
 print "Training Data Done"
 
 N = 244021
-print len(featureVectors)
-f = open('testing_set.csv', 'w')
-f1 = open('testing_labels.csv', 'w')
+# print len(featureVectors)
+f = open('./newdataset/testing_set.csv', 'w')
+f1 = open('./newdataset/testing_labels.csv', 'w')
 M = len(featureVectors[0])
 for i in xrange(N):
 	for j in xrange(M - 2):
@@ -71,6 +89,11 @@ for i in xrange(N):
 # 	f.write(featureVectors[250000 + i][j + 1] + '\n')
 
 print "Testing Data Done"
+
+
+
+
+
 
 
 
