@@ -139,7 +139,7 @@ for line in file:
 	vector = line.strip().lower().split(',')
 	testVectors.append(vector)
 
-file = open("../newdataset/testing_labels.csv")
+file = open("../newdataset/testing_labels.txt")
 for line in file:   
 	vector = line.strip().lower()
 	testlabels.append(vector)
@@ -175,12 +175,11 @@ mylabels = encode(mylabels)
 
 y = mylabels[np.size(testlabels):]
 tl = mylabels[:np.size(testlabels)]
-# clf1 = DecisionTreeClassifier()
-# clf2 = RandomForestClassifier()
-# clf3 = GaussianNB()
-# eclf = EnsembleClassifier(clfs=[clf1, clf2, clf3], voting='hard')
+clf1 = DecisionTreeClassifier()
+clf2 = RandomForestClassifier()
+clf3 = GaussianNB()
+eclf = EnsembleClassifier(clfs=[clf1, clf2, clf3], voting='hard')
 print "Training started"
-eclf = RandomForestClassifier()
 eclf.fit(X, y)
 print "Training done"
 z = classify(eclf, test, tl)

@@ -56,7 +56,7 @@ featureVectors = np.array(featureVectors);
 labels = featureVectors[:, -1]
 featureVectors = featureVectors[:, :-1]
 
-num_probes = 20
+num_probes = 1
 sz = ((np.size(featureVectors, 0), num_probes))
 probes = np.random.uniform(low=0.0, high=50, size=sz)
 probes = probes.astype('str')
@@ -83,7 +83,7 @@ print "Training Data Done"
 N = 244021
 # print len(featureVectors)
 f = open('../newdataset/testing_set.csv', 'w')
-f1 = open('../newdataset/testing_labels.csv', 'w')
+f1 = open('../newdataset/testing_labels.txt', 'w')
 M = len(featureVectors[0])
 for i in xrange(N):
 	for j in xrange(M - 2):
